@@ -4,17 +4,27 @@ const observer = {
     next: (value: any) => console.log('next', value),
     error: (error: Error) => console.log('error', error),
     complete: () => console.log('complete!'),
-
 }
 
 const observable = new Observable(subscriber => {
-    // pushing Hello to the subscriber
-    subscriber.next('Hello');
-    subscriber.next('world');
-    subscriber.complete();
+    let count = 0;
+
+    const id = setInterval(() => {
+        subscriber.next(count);
+        count += 1;
+    }, 1000);
+
+    return () => {
+        console.log('clearinterval called')
+        clearInterval(id);
+    }
 }) 
 
-observable.subscribe(
+const subscription = observable.subscribe(
     //observer here
     observer
 )
+
+setTimeout(() => {
+    subscription.unsubscribe();
+}, 3500);
