@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import { Observable, fromEvent, of, from, interval } from 'rxjs';
 
 const observer = {
     next: (value: any) => console.log('next', value),
@@ -20,11 +20,37 @@ const observable = new Observable(subscriber => {
     }
 }) 
 
-const subscription = observable.subscribe(
-    //observer here
-    observer
-)
+// const subscription = observable.subscribe(
+//     //observer here
+//     observer
+// )
 
-setTimeout(() => {
-    subscription.unsubscribe();
-}, 3500);
+// setTimeout(() => {
+//     subscription.unsubscribe();
+// }, 3500);
+
+
+
+// fromEvent
+const source = fromEvent(document, 'click');
+
+// source.subscribe(
+//     observer
+// )
+
+// of (events emitted syncronously)
+const sourceOf = of(1,2,3,4,5)
+
+// sourceOf.subscribe(observer)
+
+// from
+const sourceFrom = from([1,2,3,4,5])
+// const sourceFrom = from(fetch('https://api.github.com/users/octocat'));
+
+// sourceFrom.subscribe(observer)
+
+
+//interval
+const timer = interval(1000)
+
+// timer.subscribe(console.log)
