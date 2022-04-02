@@ -1,8 +1,20 @@
-import { of } from 'rxjs';
+import { Observable } from 'rxjs';
 
-/*
- * Any code samples you want to play with can go in this file.
- * Updates will trigger a live reload on http://localhost:1234/
- * after running npm start.
- */
-of('Hello', 'RxJS').subscribe(console.log);
+const observer = {
+    next: (value: any) => console.log('next', value),
+    error: (error: Error) => console.log('error', error),
+    complete: () => console.log('complete!'),
+
+}
+
+const observable = new Observable(subscriber => {
+    // pushing Hello to the subscriber
+    subscriber.next('Hello');
+    subscriber.next('world');
+    subscriber.complete();
+}) 
+
+observable.subscribe(
+    //observer here
+    observer
+)
