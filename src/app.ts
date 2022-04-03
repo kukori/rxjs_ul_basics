@@ -1,8 +1,11 @@
 import { Observable, fromEvent, of, from, interval } from 'rxjs';
 import { map, pluck, mapTo, filter, reduce, 
     take, scan, tap, first, takeWhile, 
-    takeUntil, distinctUntilChanged
+    takeUntil, distinctUntilChanged,
+    debounceTime, debounce, throttleTime,
+    sampleTime, sample, auditTime
 } from 'rxjs/operators';
+import { cli } from 'webpack';
 
 const observer = {
     next: (value: any) => console.log('next', value),
@@ -186,7 +189,38 @@ const numbers3 = of(1,1,2,3,3,3,4,5,3);
 numbers3.pipe(
     distinctUntilChanged()
 )
-.subscribe({
-    next: console.log,
-    complete: () => console.log("completed")
-});
+// .subscribe({
+//     next: console.log,
+//     complete: () => console.log("completed")
+// });
+
+const inputBox = document.getElementById('text-input');
+const input = fromEvent(inputBox, 'keyup')
+
+// DEBOUNCETIME:
+input.pipe(
+    // debounceTime(1000),
+    // same as debouncetime
+    debounce(() => interval(1000)),
+    pluck('target', 'value'),
+    distinctUntilChanged()
+)
+// .subscribe(console.log);
+
+// THROTTLETIME:
+click.pipe(
+    // let's through a click event every 3s
+    //throttleTime(3000)
+    //sampleTime(4000),
+    // auditTime is the same as sampleTime but samples the triling edge
+    auditTime(4000),
+    map(({clientX, clientY}: MouseEvent) => ({
+        clientX, clientY
+    }))
+)
+.subscribe(console.log)
+
+timer.pipe(
+    sample(click)
+)
+// .subscribe(console.log)
