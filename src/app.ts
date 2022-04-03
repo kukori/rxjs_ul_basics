@@ -1,5 +1,8 @@
 import { Observable, fromEvent, of, from, interval } from 'rxjs';
-import { map, pluck, mapTo, filter, reduce, take, scan, tap } from 'rxjs/operators';
+import { map, pluck, mapTo, filter, reduce, 
+    take, scan, tap, first, takeWhile, 
+    takeUntil, distinctUntilChanged
+} from 'rxjs/operators';
 
 const observer = {
     next: (value: any) => console.log('next', value),
@@ -125,7 +128,10 @@ counter.pipe(
     scan((accumlator, current) => {
         return accumlator - 1;
     }, 10),
-    filter(value => value >= 0)
+    // tap(console.log),
+    //filter(value => value > 0)
+    // takeWhile is better in this case bc filter does not stop the interval
+    takeWhile(value => value > 0)
 )
 // .subscribe(console.log);
 
@@ -142,3 +148,45 @@ from(numbers).pipe(
 // .subscribe(value => {
 //     console.log('from subscribe', value)
 // })
+
+// TAKE:
+const numbers2 = of(1,2,3,4,5);
+const click = fromEvent(document, 'click');
+
+click.pipe(
+    map((event: MouseEvent) => ({
+        x: event.clientX,
+        y: event.clientY
+    })),
+    // take(1)
+    // first is like take but only accepts according to a condition
+    // first(({y}) => y > 200)
+    takeWhile(({y}) => y <= 200)
+)
+// .subscribe({
+//     next: console.log,
+//     complete: () => console.log("completed")
+// });
+
+
+// TAKEUNTIL:
+counter.pipe(
+    takeUntil(click)
+)
+// .subscribe({
+//     next: console.log,
+//     complete: () => console.log("completed")
+// });
+
+
+// DISTINCTUNTILCHANGED:
+const numbers3 = of(1,1,2,3,3,3,4,5,3);
+// compares to the last value so the last 3 will be shown
+
+numbers3.pipe(
+    distinctUntilChanged()
+)
+.subscribe({
+    next: console.log,
+    complete: () => console.log("completed")
+});
