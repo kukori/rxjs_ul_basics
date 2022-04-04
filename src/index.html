@@ -13,6 +13,30 @@
     <div id="app">
       <h1>Ultimate RxJS</h1>
       <input id="text-input">
+      <h2>choose operator</h2>
+      <div>
+        <div class="radio-container">
+          <input type="radio" value="mergeMap" name="operator" class="radio-option">
+          <label for="mergeMap">mergeMap</label>
+        </div>
+        <div class="radio-container">
+          <input type="radio" value="switchMap" name="operator" class="radio-option">
+          <label for="switchMap">switchMap</label>
+        </div>    
+        <div class="radio-container">
+          <input type="radio" value="concatMap" name="operator" class="radio-option">
+          <label for="concatMap">concatMap</label>
+        </div>      
+      </div>
+      <button id="login">Login</button>
+      <div>
+        <p>Polling status:
+          <span id="polling-status">Stopped</span>
+        </p>
+        <button id="start">Start polling</button>
+        <button id="stop">Stop polling </button>
+      </div>
+      <img style="max-width: 400px; max-height: 400px;" id="dog" src="https://random.dog/ef01ebc6-501a-4e5f-96f7-23180cdd9f3e.JPG" alt="">
     </div>
   </body>
 </html>

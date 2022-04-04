@@ -1,11 +1,14 @@
-import { Observable, fromEvent, of, from, interval } from 'rxjs';
+import { Observable, fromEvent, timer, empty, of, from, interval } from 'rxjs';
 import { map, pluck, mapTo, filter, reduce, 
     take, scan, tap, first, takeWhile, 
     takeUntil, distinctUntilChanged,
     debounceTime, debounce, throttleTime,
-    sampleTime, sample, auditTime
+    sampleTime, sample, auditTime,
+    mergeAll, mergeMap, switchMap,
+    concatMap, exhaustMap, catchError,
+    delay, mergeMapTo, finalize, switchMapTo,
 } from 'rxjs/operators';
-import { cli } from 'webpack';
+import { ajax } from 'rxjs/ajax'
 
 const observer = {
     next: (value: any) => console.log('next', value),
@@ -58,9 +61,9 @@ const sourceFrom = from([1,2,3,4,5])
 
 
 //interval
-const timer = interval(1000)
+const intervalTimer = interval(1000)
 
-// timer.subscribe(console.log)
+// intervalTimer.subscribe(console.log)
 
 // MAP:
 of(2,3,4,5,6).pipe(
@@ -203,7 +206,16 @@ input.pipe(
     // same as debouncetime
     debounce(() => interval(1000)),
     pluck('target', 'value'),
-    distinctUntilChanged()
+    distinctUntilChanged(),
+    switchMap((searchTerm: string) => {
+        return ajax.getJSON(`https://api.openbrewerydb.org/breweries?by_name=${searchTerm}`)
+        .pipe(
+            catchError((error: Error) => {
+                console.log(error)
+                return empty();
+            })
+        )
+    })
 )
 // .subscribe(console.log);
 
@@ -218,9 +230,154 @@ click.pipe(
         clientX, clientY
     }))
 )
-.subscribe(console.log)
+// .subscribe(console.log)
 
-timer.pipe(
+intervalTimer.pipe(
     sample(click)
 )
 // .subscribe(console.log)
+
+
+
+// STREAMS: 
+input.pipe(
+    // map((event: any) => {
+    //     const term = event.target.value;
+    //     return ajax.getJSON(
+    //         `https://api.github.com/users/${term}`
+    //     )
+    // }),
+    // debounceTime(1000),
+    // mergeAll()
+    debounceTime(1000),
+    mergeMap((event: any) => {
+        const term = event.target.value;
+        return ajax.getJSON(
+            `https://api.github.com/users/${term}`
+        )
+    }),
+)
+// .subscribe(console.log)
+
+const interval1 = interval(1000);
+
+// on click 
+click.pipe(
+    mergeMap(() => interval1)
+)
+// .subscribe(console.log) 
+
+const mouseDown = fromEvent(document, 'mousedown');
+const mouseUp = fromEvent(document, 'mouseup');
+
+mouseDown.pipe(
+    mergeMap(() => interval1.pipe(
+        takeUntil(mouseUp)
+    ))
+)
+// .subscribe({
+//     next: console.log,
+//     complete: () => console.log("completed")
+// });
+
+const coordinates = click.pipe(
+    map((event: MouseEvent) => ({
+        x: event.clientX,
+        y: event.clientY
+    })),
+);
+
+const coordinatesWithSave = coordinates.pipe(
+    mergeMap(cordinates => ajax.post('https://mocki.io/v1/558a4e02-7687-40cd-9144-59c60ac873a7', cordinates))
+)
+
+coordinatesWithSave
+// .subscribe({
+//     next: console.log,
+//     complete: () => console.log("completed")
+// });
+
+// SWITCHMAP:
+
+click.pipe(
+    switchMap(() => interval1)
+)
+// .subscribe(console.log) 
+
+
+// CONCATMAP:
+
+click.pipe(
+    concatMap(() => interval1.pipe(take(3)))
+)
+// .subscribe(console.log) 
+
+
+const saveAnswer = (answer: string) => {
+    return of(`Saved ${answer}`).pipe(
+        delay(1500)
+    );
+}
+
+const radioButtons = document.querySelectorAll('.radio-option');
+const answerChange = fromEvent(radioButtons, 'click');
+
+// only saves answer when the previous is finished
+answerChange.pipe(
+    concatMap((event: any) => saveAnswer(event.target.value))
+)
+// .subscribe(console.log)
+
+
+// EXHAUSTMAP
+
+// like concatMap but while already subscribed to an observable it throws away the others
+click.pipe(
+    exhaustMap(() => interval1.pipe(take(3)))
+)
+// .subscribe(console.log) 
+
+
+const authenticateUser = () => {
+    return ajax.post(
+        'https://regres.in/api/login',
+        {
+            email: 'eve.holt@regres.in',
+            password: 'cityslicka'
+        }
+    )
+}
+
+const loginButton = document.getElementById('login');
+
+const login = fromEvent(loginButton, 'click');
+
+login.pipe(
+    tap(console.log),
+    exhaustMap(() => authenticateUser())
+)
+// .subscribe(console.log)
+
+
+// LAB 3:
+const startButton = document.getElementById('start');
+const stopButton = document.getElementById('stop');
+const pollingStatus = document.getElementById('polling-status');
+const dog = document.getElementById('dog');
+
+const startClick = fromEvent(startButton, 'click');
+const stopClick = fromEvent(stopButton, 'click');
+
+startClick.pipe(
+    exhaustMap(() => timer(0, 5000).pipe(
+        tap(() => {pollingStatus.innerHTML = 'Active'}),
+        switchMapTo(
+            ajax.getJSON('https://random.dog/woof.json').pipe(
+                pluck('url')
+            )
+        ),
+        takeUntil(stopClick),
+        finalize(() => pollingStatus.innerHTML = 'Stopped')
+    ))
+)
+// .subscribe((url: string) => (dog as HTMLImageElement).src = url)
