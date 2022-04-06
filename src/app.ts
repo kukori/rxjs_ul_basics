@@ -1,4 +1,4 @@
-import { Observable, fromEvent, timer, empty, of, from, interval } from 'rxjs';
+import { Observable, fromEvent, timer, empty, of, from, interval, merge } from 'rxjs';
 import { map, pluck, mapTo, filter, reduce, 
     take, scan, tap, first, takeWhile, 
     takeUntil, distinctUntilChanged,
@@ -7,6 +7,8 @@ import { map, pluck, mapTo, filter, reduce,
     mergeAll, mergeMap, switchMap,
     concatMap, exhaustMap, catchError,
     delay, mergeMapTo, finalize, switchMapTo,
+    startWith, endWith, concatWith, mergeWith,
+    combineLatestWith, concat
 } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax'
 
@@ -127,8 +129,11 @@ const totalReducer = (accumlator: number, currentValue: number) => {
 //     }, 0)
 // ).subscribe(console.log)
 
-//countdown from 9
+// LAB2: countdown from 9
 const counter = interval(1000);
+const counterDisplayElement = document.getElementById('counter-display');
+const stopCounterButton = document.getElementById('stop-counter');
+const stopCounterButtonClick = fromEvent(stopCounterButton, 'click')
 
 counter.pipe(
     scan((accumlator, current) => {
@@ -137,9 +142,16 @@ counter.pipe(
     // tap(console.log),
     //filter(value => value > 0)
     // takeWhile is better in this case bc filter does not stop the interval
-    takeWhile(value => value > 0)
+    takeWhile(value => value >= 0),
+    takeUntil(stopCounterButtonClick),
+    startWith(10)
 )
-// .subscribe(console.log);
+.subscribe((value: any) => {
+    counterDisplayElement.innerHTML = value;
+    if(!value) {
+        counterDisplayElement.innerHTML = 'Liftoff!'
+    }
+});
 
 // TAP:
 from(numbers).pipe(
@@ -381,3 +393,45 @@ startClick.pipe(
     ))
 )
 // .subscribe((url: string) => (dog as HTMLImageElement).src = url)
+
+
+// STARTWITH:
+const number = of(1,2,3);
+
+number.pipe(
+    startWith('a', 'b', 'c'),
+    endWith('a', 'b', 'c'),
+)
+// .subscribe(console.log);
+
+
+
+// CONCAT:
+// this is the static concat inported from rxjs
+// concat(
+//     interval1.pipe(take(3)),
+//     interval1.pipe(take(2)),
+// )
+// .subscribe(console.log) 
+const delayed = empty().pipe(delay(1000))
+
+//this concat is the pipeable operator 
+//it helps to join multiple observables subscribe in order as the prev completes
+delayed.pipe(
+    concat(
+        delayed.pipe(startWith('3...')),
+        delayed.pipe(startWith('2...')),
+        delayed.pipe(startWith('1...')),
+        delayed.pipe(startWith('Go!')),
+    ),
+    startWith('Get Ready!')
+)
+// .subscribe(console.log) 
+
+// MERGE:
+
+merge(
+    mouseUp,
+    click
+)
+// .subscribe(console.log) 
