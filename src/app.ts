@@ -1,14 +1,14 @@
-import { Observable, fromEvent, timer, empty, of, from, interval, merge } from 'rxjs';
-import { map, pluck, mapTo, filter, reduce, 
+import { Observable, fromEvent, timer, of, from, interval, merge, EMPTY, concat, combineLatest, forkJoin } from 'rxjs';
+import { map, pluck, filter, reduce, 
     take, scan, tap, first, takeWhile, 
     takeUntil, distinctUntilChanged,
     debounceTime, debounce, throttleTime,
     sampleTime, sample, auditTime,
     mergeAll, mergeMap, switchMap,
     concatMap, exhaustMap, catchError,
-    delay, mergeMapTo, finalize, switchMapTo,
+    delay, finalize,
     startWith, endWith, concatWith, mergeWith,
-    combineLatestWith, concat
+    combineLatestWith, withLatestFrom
 } from 'rxjs/operators';
 import { ajax } from 'rxjs/ajax'
 
@@ -83,7 +83,7 @@ const keyCodeWithPluck = keyup.pipe(
     pluck('code')
 )
 const pressed = keyup.pipe(
-    mapTo('Key pressed!')
+    map(() => 'Key pressed!')
 )
 
 
@@ -132,10 +132,18 @@ const totalReducer = (accumlator: number, currentValue: number) => {
 // LAB2: countdown from 9
 const counter = interval(1000);
 const counterDisplayElement = document.getElementById('counter-display');
-const stopCounterButton = document.getElementById('stop-counter');
-const stopCounterButtonClick = fromEvent(stopCounterButton, 'click')
+const pauseCounterButton = document.getElementById('pause-counter');
+const pauseCounterButtonClick = fromEvent(pauseCounterButton, 'click');
+const startCounterButton = document.getElementById('start-counter');
+const startCounterButtonClick = fromEvent(startCounterButton, 'click');
 
-counter.pipe(
+merge(
+    startCounterButtonClick.pipe(map(() => true)),
+    pauseCounterButtonClick.pipe(map(() => false))
+).pipe(
+    switchMap(shouldCount => {
+        return shouldCount ? counter : EMPTY
+    }),
     scan((accumlator, current) => {
         return accumlator - 1;
     }, 10),
@@ -143,7 +151,6 @@ counter.pipe(
     //filter(value => value > 0)
     // takeWhile is better in this case bc filter does not stop the interval
     takeWhile(value => value >= 0),
-    takeUntil(stopCounterButtonClick),
     startWith(10)
 )
 .subscribe((value: any) => {
@@ -224,7 +231,7 @@ input.pipe(
         .pipe(
             catchError((error: Error) => {
                 console.log(error)
-                return empty();
+                return EMPTY;
             })
         )
     })
@@ -383,7 +390,7 @@ const stopClick = fromEvent(stopButton, 'click');
 startClick.pipe(
     exhaustMap(() => timer(0, 5000).pipe(
         tap(() => {pollingStatus.innerHTML = 'Active'}),
-        switchMapTo(
+        switchMap(() =>
             ajax.getJSON('https://random.dog/woof.json').pipe(
                 pluck('url')
             )
@@ -413,12 +420,12 @@ number.pipe(
 //     interval1.pipe(take(2)),
 // )
 // .subscribe(console.log) 
-const delayed = empty().pipe(delay(1000))
+const delayed = EMPTY.pipe(delay(1000))
 
-//this concat is the pipeable operator 
+//this concatWith is the pipeable operator 
 //it helps to join multiple observables subscribe in order as the prev completes
 delayed.pipe(
-    concat(
+    concatWith(
         delayed.pipe(startWith('3...')),
         delayed.pipe(startWith('2...')),
         delayed.pipe(startWith('1...')),
@@ -431,7 +438,66 @@ delayed.pipe(
 // MERGE:
 
 merge(
-    mouseUp,
+    keyup,
     click
 )
 // .subscribe(console.log) 
+
+
+
+// COMBINELATEST:
+// waits until 
+combineLatest(
+    [keyup, click]
+)
+// .subscribe(console.log) 
+
+
+const inputFirst = document.getElementById('first');
+const inputFirstKeyUp = fromEvent(inputFirst, 'keyup').pipe(
+    map((event: any) => event.target.valueAsNumber)
+);
+
+const inputSecond = document.getElementById('second');
+const inputSecondKeyUp = fromEvent(inputSecond, 'keyup').pipe(
+    map((event: any) => event.target.valueAsNumber)
+);
+
+combineLatest(
+    [inputFirstKeyUp, inputSecondKeyUp]
+).pipe(
+    filter(([firstValue, secondValue]) => {
+        return !isNaN(firstValue) && !isNaN(secondValue);
+    }),
+    map(([firstValue, secondValue]) => {
+        return firstValue + secondValue;
+    })
+)
+.subscribe(console.log) 
+
+
+
+// FORKJOIN:
+const numbers4 = of(1,2,3);
+const letters = of('a', 'b', 'c');
+
+// forkJoin(
+//     [numbers4, letters]
+// )
+// forkjoin can receive an object instead of an array, in this case the returned value will be an object too
+forkJoin(
+    {number: numbers4, letter: letters}
+)
+// .subscribe(console.log) 
+
+// best usecase is to receive data from multiple sources waiting both to finish
+forkJoin(
+    { 
+        user: ajax.getJSON('https://api/github.com/users/kukori'),
+        repo: ajax.getJSON('https://api/github.com/users/kukori/repos')
+    }
+)
+// subscribe(console.log) 
+
+
+// LAB 4 mortage calculator
